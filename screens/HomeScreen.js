@@ -72,12 +72,11 @@ const HomeScreen = () => {
           }
 
           // Check for accident based on speed difference
-          if (currentSpeedInKmh - tempSpeed >= 3 && !emailSent) {
+          if (currentSpeedInKmh - tempSpeed >= 4 && !emailSent) {
             // Speed increased by 2 km/h and email has not been sent recently
             setSpeedWarning("Warning: Significant speed change detected!");
             await sendEmailNotification(); // Send email
             setEmailSent(true); // Set the email sent status to true
-            
           } else {
             setSpeedWarning("");
           }
@@ -91,7 +90,7 @@ const HomeScreen = () => {
       };
 
       getLocation(); // Fetch location initially
-      const interval = setInterval(getLocation, 4000); 
+      const interval = setInterval(getLocation, 4000);
 
       return () => clearInterval(interval); // Clean up interval on unmount
     };
@@ -159,9 +158,6 @@ const HomeScreen = () => {
             <Text style={styles.detail}>
               Vehicle Info: {userDetails.vehicleInfo}
             </Text>
-            {/* {speedWarning ? (
-              <Text style={styles.warning}>{speedWarning}</Text>
-            ) : null} */}
             <TouchableOpacity style={styles.button} onPress={logOut}>
               <Text style={styles.buttonText}>Log Out</Text>
             </TouchableOpacity>
