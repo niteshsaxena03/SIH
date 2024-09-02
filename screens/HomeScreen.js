@@ -2,24 +2,32 @@ import React, { useEffect, useState } from "react";
 import { View, Text, StyleSheet, TouchableOpacity, Alert } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import * as Location from "expo-location";
+import emailjs from "emailjs-com";
 import { useFirebase } from "../Firebase/firebaseContext";
 
 const HomeScreen = () => {
   const { user, logOut, getUserDetailsByEmail } = useFirebase();
   const [userDetails, setUserDetails] = useState(null);
   const [status, setStatus] = useState("Monitoring...");
-  const [currentSpeed, setCurrentSpeed] = useState(0); // Initial speed
+  const [currentSpeed, setCurrentSpeed] = useState(0);
+  const [tempSpeed, setTempSpeed] = useState(0);
   const [currentLocation, setCurrentLocation] = useState(
     "Latitude: 0, Longitude: 0"
   );
-  const [locationName, setLocationName] = useState(""); // For location name
+  const [locationName, setLocationName] = useState("");
   const [speedWarning, setSpeedWarning] = useState("");
+  const [emailSent, setEmailSent] = useState(false); // Boolean state to track email status
 
   useEffect(() => {
     const fetchUserDetails = async () => {
       if (user) {
-        const userData = await getUserDetailsByEmail(user.email);
-        setUserDetails(userData);
+        try {
+          const userData = await getUserDetailsByEmail(user.email);
+          setUserDetails(userData);
+        } catch (error) {
+          console.error("Error fetching user details:", error);
+          Alert.alert("Error", "Unable to fetch user details.");
+        }
       }
     };
 
@@ -30,61 +38,109 @@ const HomeScreen = () => {
     const requestLocationPermission = async () => {
       let { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== "granted") {
-        Alert.alert("Permission to access location was denied");
+        Alert.alert("Permission Denied", "Location access is required.");
         return;
       }
 
-      // Define the function to get location and speed
       const getLocation = async () => {
-        const { coords } = await Location.getCurrentPositionAsync({
-          accuracy: Location.Accuracy.High,
-        });
+        try {
+          const { coords } = await Location.getCurrentPositionAsync({
+            accuracy: Location.Accuracy.High,
+          });
 
-        const { latitude, longitude, speed } = coords;
-        setCurrentLocation(`Latitude: ${latitude}, Longitude: ${longitude}`);
-        setCurrentSpeed(speed ? (speed * 3.6).toFixed(2) : 0); // Convert m/s to km/h
+          const { latitude, longitude, speed } = coords;
+          const currentSpeedInKmh = speed ? (speed * 3.6).toFixed(2) : 0;
+          setCurrentLocation(`Latitude: ${latitude}, Longitude: ${longitude}`);
+          setCurrentSpeed(currentSpeedInKmh);
 
-        // Get location name
-        const reverseGeocode = await Location.reverseGeocodeAsync({
-          latitude,
-          longitude,
-        });
-        if (reverseGeocode.length > 0) {
-          const locationInfo = reverseGeocode[0];
-          // Construct a detailed location name
-          const street =
-            locationInfo.name || locationInfo.street || "Unknown Street";
-          const neighborhood = locationInfo.subregion || "Unknown Neighborhood";
-          const city = locationInfo.city || "Unknown City";
-          const country = locationInfo.country || "Unknown Country";
+          const reverseGeocode = await Location.reverseGeocodeAsync({
+            latitude,
+            longitude,
+          });
+          if (reverseGeocode.length > 0) {
+            const locationInfo = reverseGeocode[0];
+            const street =
+              locationInfo.name || locationInfo.street || "Unknown Street";
+            const neighborhood =
+              locationInfo.subregion || "Unknown Neighborhood";
+            const city = locationInfo.city || "Unknown City";
+            const country = locationInfo.country || "Unknown Country";
 
-          setLocationName(`${street}, ${neighborhood}, ${city}, ${country}`);
-        } else {
-          setLocationName("Location name not available");
-        }
+            setLocationName(`${street}, ${neighborhood}, ${city}, ${country}`);
+          } else {
+            setLocationName("Location name not available");
+          }
 
-        // Update speed warning
-        if (speed > 22.22) {
-          // Speed > 80 km/h
-          setSpeedWarning("Warning: You are speeding!");
-        } else {
-          setSpeedWarning("");
+          // Check for accident based on speed difference
+          if (currentSpeedInKmh - tempSpeed >= 2 && !emailSent) {
+            // Speed increased by 2 km/h and email has not been sent recently
+            setSpeedWarning("Warning: Significant speed change detected!");
+            await sendEmailNotification(); // Send email
+            setEmailSent(true); // Set the email sent status to true
+            setTimeout(() => setEmailSent(false), 30000); // Reset the email sent status after 30 seconds
+          } else {
+            setSpeedWarning("");
+          }
+
+          // Update tempSpeed after checking
+          setTempSpeed(currentSpeedInKmh);
+        } catch (error) {
+          console.error("Error getting location:", error);
+          Alert.alert("Error", "Unable to get location.");
         }
       };
 
-      // Fetch location and speed initially
-      getLocation();
+      getLocation(); // Fetch location initially
+      const interval = setInterval(getLocation, 5000); // Update every 5 seconds
 
-      // Update location and speed every 1 second
-      const interval = setInterval(() => {
-        getLocation();
-      }, 1000);
-
-      return () => clearInterval(interval);
+      return () => clearInterval(interval); // Clean up interval on unmount
     };
 
     requestLocationPermission();
-  }, []);
+  }, [tempSpeed, currentSpeed]); // Add tempSpeed and currentSpeed as dependencies
+
+  const sendEmailNotification = async () => {
+    if (
+      !userDetails ||
+      !userDetails.emergencyContacts ||
+      userDetails.emergencyContacts.length === 0
+    )
+      return;
+
+    const templateParams = {
+      user_name: userDetails.fullName,
+      status: status,
+      latitude: currentLocation.split(",")[0].split(":")[1].trim(),
+      longitude: currentLocation.split(",")[1].split(":")[1].trim(),
+      location_name: locationName,
+      speed: currentSpeed,
+      vehicle_info: userDetails.vehicleInfo,
+      emergency_message: "Immediate action required!",
+    };
+
+    const contacts = userDetails.emergencyContacts;
+    const emailPromises = contacts.map(async (contact) => {
+      try {
+        const response = await emailjs.send(
+          "service_v47d708", // Replace with your actual service ID
+          "template_ngshg1f", // Replace with your actual template ID
+          { ...templateParams, to_email: contact.contact }, // Merge templateParams with contact email
+          "Evcn8Q0PznkFUQy52" // Replace with your actual public key (user ID)
+        );
+        console.log(
+          "Email sent successfully to",
+          contact.contact,
+          ":",
+          response
+        );
+      } catch (error) {
+        console.error("Error sending email to", contact.contact, ":", error);
+      }
+    });
+
+    // Wait for all email sending promises to complete
+    await Promise.all(emailPromises);
+  };
 
   return (
     <LinearGradient colors={["#002b36", "#005f73"]} style={styles.container}>
@@ -103,10 +159,9 @@ const HomeScreen = () => {
             <Text style={styles.detail}>
               Vehicle Info: {userDetails.vehicleInfo}
             </Text>
-            {speedWarning ? (
+            {/* {speedWarning ? (
               <Text style={styles.warning}>{speedWarning}</Text>
-            ) : null}
-
+            ) : null} */}
             <TouchableOpacity style={styles.button} onPress={logOut}>
               <Text style={styles.buttonText}>Log Out</Text>
             </TouchableOpacity>

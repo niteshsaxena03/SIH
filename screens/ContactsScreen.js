@@ -134,7 +134,7 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
   contactText: {
-    fontSize: 19,
+    fontSize: 16,
     color: "#333",
     fontWeight: "bold",
   },
@@ -144,13 +144,15 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     marginTop: 10,
     marginBottom: 10,
+    marginLeft:5,
+    marginRight:5,
     alignItems: "center",
     elevation: 3, // Shadow for Android
     shadowColor: "#000", // Shadow for iOS
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.3,
     shadowRadius: 3,
-    width: 150,
+    width: 130,
   },
   contactButton: {
     backgroundColor: "#87CEEB", // Soft green color that blends well with the theme
