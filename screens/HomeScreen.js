@@ -72,12 +72,12 @@ const HomeScreen = () => {
           }
 
           // Check for accident based on speed difference
-          if (currentSpeedInKmh - tempSpeed >= 2 && !emailSent) {
+          if (currentSpeedInKmh - tempSpeed >= 3 && !emailSent) {
             // Speed increased by 2 km/h and email has not been sent recently
             setSpeedWarning("Warning: Significant speed change detected!");
             await sendEmailNotification(); // Send email
             setEmailSent(true); // Set the email sent status to true
-            setTimeout(() => setEmailSent(false), 30000); // Reset the email sent status after 30 seconds
+            
           } else {
             setSpeedWarning("");
           }
@@ -91,7 +91,7 @@ const HomeScreen = () => {
       };
 
       getLocation(); // Fetch location initially
-      const interval = setInterval(getLocation, 5000); // Update every 5 seconds
+      const interval = setInterval(getLocation, 4000); 
 
       return () => clearInterval(interval); // Clean up interval on unmount
     };
