@@ -72,7 +72,7 @@ const HomeScreen = () => {
           }
 
           // Check for accident based on speed difference
-          if (currentSpeedInKmh - tempSpeed >= 4 && !emailSent) {
+          if (currentSpeedInKmh - tempSpeed >= 1 && !emailSent) {
             // Speed increased by 2 km/h and email has not been sent recently
             setSpeedWarning("Warning: Significant speed change detected!");
             await sendEmailNotification(); // Send email
@@ -90,7 +90,7 @@ const HomeScreen = () => {
       };
 
       getLocation(); // Fetch location initially
-      const interval = setInterval(getLocation, 4000);
+      const interval = setInterval(getLocation, 1000);
 
       return () => clearInterval(interval); // Clean up interval on unmount
     };
@@ -106,34 +106,61 @@ const HomeScreen = () => {
     )
       return;
 
-    const templateParams = {
-      user_name: userDetails.fullName,
-      status: status,
-      latitude: currentLocation.split(",")[0].split(":")[1].trim(),
-      longitude: currentLocation.split(",")[1].split(":")[1].trim(),
-      location_name: locationName,
-      speed: currentSpeed,
-      vehicle_info: userDetails.vehicleInfo,
-      emergency_message: "Immediate action required!",
-    };
-
     const contacts = userDetails.emergencyContacts;
-    const emailPromises = contacts.map(async (contact) => {
+
+    // Iterate over contacts and process only those with counter 0
+    const emailPromises = contacts.map(async (contactEntry) => {
       try {
-        const response = await emailjs.send(
-          "service_v47d708", // Replace with your actual service ID
-          "template_ngshg1f", // Replace with your actual template ID
-          { ...templateParams, to_email: contact.contact }, // Merge templateParams with contact email
-          "Evcn8Q0PznkFUQy52" // Replace with your actual public key (user ID)
-        );
-        console.log(
-          "Email sent successfully to",
-          contact.contact,
-          ":",
-          response
-        );
+        // Extract the contact email and counter
+        const contactEmail = contactEntry.contact.contact.trim(); // Trim extra spaces
+        const contactCounter = contactEntry.contact.counter;
+
+        if (contactCounter === 0) {
+          // Prepare email parameters
+          const templateParams = {
+            user_name: userDetails.fullName,
+            status: status,
+            latitude: currentLocation.split(",")[0].split(":")[1].trim(),
+            longitude: currentLocation.split(",")[1].split(":")[1].trim(),
+            location_name: locationName,
+            speed: currentSpeed,
+            vehicle_info: userDetails.vehicleInfo,
+            emergency_message: "Immediate action required!",
+          };
+
+          // Send the email
+          await emailjs.send(
+            "service_v47d708", // Replace with your actual service ID
+            "template_ngshg1f", // Replace with your actual template ID
+            { ...templateParams, to_email: contactEmail }, // Merge templateParams with contact email
+            "Evcn8Q0PznkFUQy52" // Replace with your actual public key (user ID)
+          );
+
+          console.log("Email sent successfully to", contactEmail);
+
+          // Update the counter to 1 in Firebase
+          const userRef = doc(db, "users", user.uid);
+          const updatedContacts = contacts.map((contact) =>
+            contact.contact.contact.trim() === contactEmail
+              ? { ...contact, contact: { ...contact.contact, counter: 1 } } // Update the counter for this contact
+              : contact
+          );
+
+          await updateDoc(userRef, { emergencyContacts: updatedContacts });
+
+          // Update local state if needed
+          setUserDetails({
+            ...userDetails,
+            emergencyContacts: updatedContacts,
+          });
+        }
       } catch (error) {
-        console.error("Error sending email to", contact.contact, ":", error);
+        console.error(
+          "Error sending email to",
+          contactEntry.contact.contact,
+          ":",
+          error
+        );
       }
     });
 
