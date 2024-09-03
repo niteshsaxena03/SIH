@@ -3,7 +3,6 @@ import {
   View,
   Text,
   StyleSheet,
-  Button,
   TextInput,
   FlatList,
   TouchableOpacity,
@@ -31,7 +30,22 @@ const ContactsScreen = () => {
     try {
       const userDetails = await getUserDetailsByEmail(user.email);
       if (userDetails && userDetails.emergencyContacts) {
-        setContacts(userDetails.emergencyContacts);
+        // Extract only the 'contact' field from each entry in the array
+        const contactList = userDetails.emergencyContacts
+          .map((contactEntry) => {
+            if (typeof contactEntry.contact === "string") {
+              return contactEntry.contact;
+            } else if (
+              typeof contactEntry === "object" &&
+              contactEntry.contact
+            ) {
+              return contactEntry.contact.contact;
+            }
+            return null;
+          })
+          .filter((contact) => contact !== null); // Filter out any null values
+
+        setContacts(contactList);
       }
     } catch (error) {
       console.error("Error fetching contacts:", error);
@@ -41,7 +55,8 @@ const ContactsScreen = () => {
   const handleAddContact = async () => {
     if (!newContact) return;
     try {
-      await addContactToUser(user.uid, newContact);
+      const contactObject = { contact: newContact, counter: 0 }; // Create contact object with counter initialized to 0
+      await addContactToUser(user.uid, contactObject);
       setNewContact("");
       fetchContacts(); // Refresh contacts
     } catch (error) {
@@ -81,10 +96,10 @@ const ContactsScreen = () => {
           keyExtractor={(item, index) => index.toString()}
           renderItem={({ item }) => (
             <View style={styles.contactItem}>
-              <Text style={styles.contactText}>{item.contact}</Text>
+              <Text style={styles.contactText}>{item}</Text>
               <TouchableOpacity
                 style={styles.button}
-                onPress={() => handleRemoveContact(item.contact)}
+                onPress={() => handleRemoveContact(item)}
               >
                 <Text style={styles.buttonText}>Remove</Text>
               </TouchableOpacity>
@@ -144,8 +159,8 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     marginTop: 10,
     marginBottom: 10,
-    marginLeft:5,
-    marginRight:5,
+    marginLeft: 5,
+    marginRight: 5,
     alignItems: "center",
     elevation: 3, // Shadow for Android
     shadowColor: "#000", // Shadow for iOS
