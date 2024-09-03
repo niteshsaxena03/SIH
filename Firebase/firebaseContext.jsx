@@ -105,16 +105,34 @@ export const FirebaseProvider = ({ children }) => {
        const userRef = doc(db, "users", userId);
        const userDoc = await getDoc(userRef);
        const userData = userDoc.data();
-       const updatedContacts = userData.emergencyContacts.filter(
-         (contact) => contact.contact !== contactToRemove
-       );
-       await updateDoc(userRef, {
-         emergencyContacts: updatedContacts,
-       });
+
+       // Check if emergencyContacts is an array
+       if (Array.isArray(userData.emergencyContacts)) {
+         const updatedContacts = userData.emergencyContacts.filter(
+           (contactEntry) => {
+             // Ensure contactEntry is an object with the 'contact' field
+             if (
+               contactEntry &&
+               contactEntry.contact &&
+               typeof contactEntry.contact === "object"
+             ) {
+               return contactEntry.contact.contact !== contactToRemove;
+             }
+             return true; // Keep entries that do not match the structure
+           }
+         );
+
+         await updateDoc(userRef, {
+           emergencyContacts: updatedContacts,
+         });
+       } else {
+         console.error("Emergency contacts is not an array.");
+       }
      } catch (error) {
        console.error("Error removing contact:", error);
      }
    };
+   
   const getUserDetailsByEmail = async (email) => {
     try {
       const usersRef = collection(db, "users");

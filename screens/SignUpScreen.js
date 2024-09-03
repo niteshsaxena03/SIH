@@ -37,7 +37,11 @@ function SignupScreen() {
         fullName,
         phoneNumber,
         email,
-        emergencyContacts: [{ contact: emergencyContact, counter: 0 }], // Array of emergency contacts
+        emergencyContacts: [
+          {
+            contact: { contact: emergencyContact, counter: 0 }, // Nested contact object
+          },
+        ], // Array of emergency contacts
         bloodType,
         vehicleInfo,
       };

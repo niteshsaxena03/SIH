@@ -33,11 +33,11 @@ const ContactsScreen = () => {
         // Extract only the 'contact' field from each entry in the array
         const contactList = userDetails.emergencyContacts
           .map((contactEntry) => {
-            if (typeof contactEntry.contact === "string") {
-              return contactEntry.contact;
-            } else if (
-              typeof contactEntry === "object" &&
-              contactEntry.contact
+            // Ensure contactEntry is an object with the 'contact' field
+            if (
+              contactEntry &&
+              contactEntry.contact &&
+              typeof contactEntry.contact === "object"
             ) {
               return contactEntry.contact.contact;
             }
@@ -66,13 +66,14 @@ const ContactsScreen = () => {
 
   const handleRemoveContact = async (contact) => {
     try {
-      await removeContactFromUser(user.uid, contact);
+      // Pass the contact value, assuming it's a string
+      const contactToRemove = contact;
+      await removeContactFromUser(user.uid, contactToRemove);
       fetchContacts(); // Refresh contacts
     } catch (error) {
       console.error("Error removing contact:", error);
     }
   };
-
   return (
     <LinearGradient colors={["#002b36", "#005f73"]} style={styles.container}>
       <View style={styles.innerContainer}>
