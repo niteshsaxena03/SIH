@@ -37,7 +37,7 @@ function SignupScreen() {
         fullName,
         phoneNumber,
         email,
-        emergencyContacts: [{ contact: emergencyContact }], // Array of emergency contacts
+        emergencyContacts: [{ contact: emergencyContact, counter: 0 }], // Array of emergency contacts
         bloodType,
         vehicleInfo,
       };
