@@ -3,7 +3,8 @@ import { View, Text, StyleSheet, TouchableOpacity, Alert } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import * as Location from "expo-location";
 import emailjs from "emailjs-com";
-import { useFirebase } from "../Firebase/firebaseContext";
+import { useFirebase,db } from "../Firebase/firebaseContext";
+import { doc,updateDoc } from "firebase/firestore";
 
 const HomeScreen = () => {
   const { user, logOut, getUserDetailsByEmail } = useFirebase();
@@ -130,10 +131,10 @@ const HomeScreen = () => {
 
           // Send the email
           await emailjs.send(
-            "service_v47d708", // Replace with your actual service ID
-            "template_ngshg1f", // Replace with your actual template ID
+            "service_73jz5iy", // Replace with your actual service ID
+            "template_rcxp93g", // Replace with your actual template ID
             { ...templateParams, to_email: contactEmail }, // Merge templateParams with contact email
-            "Evcn8Q0PznkFUQy52" // Replace with your actual public key (user ID)
+            "noL_ZTkyZqpk3iVDQ" // Replace with your actual public key (user ID)
           );
 
           console.log("Email sent successfully to", contactEmail);
