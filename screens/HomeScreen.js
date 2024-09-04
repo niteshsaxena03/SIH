@@ -3,8 +3,8 @@ import { View, Text, StyleSheet, TouchableOpacity, Alert } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import * as Location from "expo-location";
 import emailjs from "emailjs-com";
-import { useFirebase,db } from "../Firebase/firebaseContext";
-import { doc,updateDoc } from "firebase/firestore";
+import { useFirebase, db } from "../Firebase/firebaseContext";
+import { doc, updateDoc } from "firebase/firestore";
 
 const HomeScreen = () => {
   const { user, logOut, getUserDetailsByEmail } = useFirebase();
@@ -73,7 +73,7 @@ const HomeScreen = () => {
           }
 
           // Check for accident based on speed difference
-          if (currentSpeedInKmh - tempSpeed >= 1 && !emailSent) {
+          if (currentSpeedInKmh - tempSpeed >= 40 && !emailSent) {
             // Speed increased by 2 km/h and email has not been sent recently
             setSpeedWarning("Warning: Significant speed change detected!");
             await sendEmailNotification(); // Send email
@@ -116,45 +116,43 @@ const HomeScreen = () => {
         const contactEmail = contactEntry.contact.contact.trim(); // Trim extra spaces
         const contactCounter = contactEntry.contact.counter;
 
-        if (contactCounter === 0) {
-          // Prepare email parameters
-          const templateParams = {
-            user_name: userDetails.fullName,
-            status: status,
-            latitude: currentLocation.split(",")[0].split(":")[1].trim(),
-            longitude: currentLocation.split(",")[1].split(":")[1].trim(),
-            location_name: locationName,
-            speed: currentSpeed,
-            vehicle_info: userDetails.vehicleInfo,
-            emergency_message: "Immediate action required!",
-          };
+        // Prepare email parameters
+        const templateParams = {
+          user_name: userDetails.fullName,
+          status: status,
+          latitude: currentLocation.split(",")[0].split(":")[1].trim(),
+          longitude: currentLocation.split(",")[1].split(":")[1].trim(),
+          location_name: locationName,
+          speed: currentSpeed,
+          vehicle_info: userDetails.vehicleInfo,
+          emergency_message: "Immediate action required!",
+        };
 
-          // Send the email
-          await emailjs.send(
-            "service_73jz5iy", // Replace with your actual service ID
-            "template_rcxp93g", // Replace with your actual template ID
-            { ...templateParams, to_email: contactEmail }, // Merge templateParams with contact email
-            "noL_ZTkyZqpk3iVDQ" // Replace with your actual public key (user ID)
-          );
+        // Send the email
+        await emailjs.send(
+          "service_73jz5iy", // Replace with your actual service ID
+          "template_rcxp93g", // Replace with your actual template ID
+          { ...templateParams, to_email: contactEmail }, // Merge templateParams with contact email
+          "noL_ZTkyZqpk3iVDQ" // Replace with your actual public key (user ID)
+        );
 
-          console.log("Email sent successfully to", contactEmail);
+        console.log("Email sent successfully to", contactEmail);
 
-          // Update the counter to 1 in Firebase
-          const userRef = doc(db, "users", user.uid);
-          const updatedContacts = contacts.map((contact) =>
-            contact.contact.contact.trim() === contactEmail
-              ? { ...contact, contact: { ...contact.contact, counter: 1 } } // Update the counter for this contact
-              : contact
-          );
+        // Update the counter to 1 in Firebase
+        const userRef = doc(db, "users", user.uid);
+        const updatedContacts = contacts.map((contact) =>
+          contact.contact.contact.trim() === contactEmail
+            ? { ...contact, contact: { ...contact.contact, counter: 1 } } // Update the counter for this contact
+            : contact
+        );
 
-          await updateDoc(userRef, { emergencyContacts: updatedContacts });
+        await updateDoc(userRef, { emergencyContacts: updatedContacts });
 
-          // Update local state if needed
-          setUserDetails({
-            ...userDetails,
-            emergencyContacts: updatedContacts,
-          });
-        }
+        // Update local state if needed
+        setUserDetails({
+          ...userDetails,
+          emergencyContacts: updatedContacts,
+        });
       } catch (error) {
         console.error(
           "Error sending email to",
@@ -174,18 +172,28 @@ const HomeScreen = () => {
       <View style={styles.innerContainer}>
         {userDetails ? (
           <>
-            <Text style={styles.greeting}>Hi, {userDetails.fullName}</Text>
-            <Text style={styles.status}>Status: {status}</Text>
-            <Text style={styles.detail}>
-              Current Location: {currentLocation}
-            </Text>
-            <Text style={styles.detail}>Location Name: {locationName}</Text>
-            <Text style={styles.detail}>
-              Current Speed: {currentSpeed} km/h
-            </Text>
-            <Text style={styles.detail}>
-              Vehicle Info: {userDetails.vehicleInfo}
-            </Text>
+            <View style={styles.box}>
+              <Text style={styles.greeting}>Hi, {userDetails.fullName}</Text>
+            </View>
+            <View style={styles.box}>
+              <Text style={styles.status}>Status: {status}</Text>
+            </View>
+            <View style={styles.box}>
+              <Text style={styles.detail}>Current Location:</Text>
+              <Text style={styles.detailValue}>{currentLocation}</Text>
+            </View>
+            <View style={styles.box}>
+              <Text style={styles.detail}>Location Name:</Text>
+              <Text style={styles.detailValue}>{locationName}</Text>
+            </View>
+            <View style={styles.box}>
+              <Text style={styles.detail}>Current Speed:</Text>
+              <Text style={styles.detailValue}>{currentSpeed} km/h</Text>
+            </View>
+            <View style={styles.box}>
+              <Text style={styles.detail}>Vehicle Info:</Text>
+              <Text style={styles.detailValue}>{userDetails.vehicleInfo}</Text>
+            </View>
             <TouchableOpacity style={styles.button} onPress={logOut}>
               <Text style={styles.buttonText}>Log Out</Text>
             </TouchableOpacity>
@@ -209,42 +217,45 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingHorizontal: 20,
     flexDirection: "column",
+    marginTop:30,
+  },
+  box: {
+    backgroundColor: "#004d40",
+    borderRadius: 10,
+    padding: 15,
+    marginBottom: 15,
+    width: "100%",
+    borderColor: "#00796b",
+    borderWidth: 2,
   },
   greeting: {
     fontSize: 32,
     fontWeight: "bold",
     color: "#fff",
-    marginBottom: 20,
     textAlign: "center",
   },
   status: {
     fontSize: 20,
     color: "#ff9800",
-    marginBottom: 20,
     textAlign: "center",
   },
   detail: {
     fontSize: 18,
     fontWeight: "600",
     color: "#e0f7fa",
-    marginBottom: 10,
-    textAlign: "center",
-    textShadowColor: "#000",
-    textShadowOffset: { width: 1, height: 1 },
-    textShadowRadius: 2,
+    marginBottom: 5,
+    textAlign: "left",
   },
-  warning: {
-    fontSize: 20,
-    color: "#ff0000",
-    marginBottom: 20,
-    fontWeight: "bold",
-    textAlign: "center",
+  detailValue: {
+    fontSize: 18,
+    color: "#ffffff",
+    textAlign: "left",
   },
   button: {
     backgroundColor: "#fff",
     padding: 15,
     borderRadius: 10,
-    marginTop: 20,
+    // marginTop: 10,
     alignItems: "center",
     elevation: 3,
     shadowColor: "#000",
@@ -252,6 +263,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 3,
     width: 150,
+    marginBottom:30,
   },
   buttonText: {
     fontSize: 18,
