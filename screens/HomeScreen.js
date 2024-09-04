@@ -130,11 +130,18 @@ const HomeScreen = () => {
 
         // Send the email
         await emailjs.send(
-          "service_73jz5iy", // Replace with your actual service ID
-          "template_rcxp93g", // Replace with your actual template ID
-          { ...templateParams, to_email: contactEmail }, // Merge templateParams with contact email
-          "noL_ZTkyZqpk3iVDQ" // Replace with your actual public key (user ID)
+          "service_5k8mnrp",
+          "template_83esbcf",
+          { ...templateParams, to_email: contactEmail },
+          "GzXmQG789jj1diqke"
         );
+        
+        // await emailjs.send(
+        //   "service_dvbcq6y",
+        //   "template_3qhai87",
+        //   { ...templateParams, to_email: contactEmail },
+        //   "ZdtL7-XvwQtHAxDzM"
+        // );
 
         console.log("Email sent successfully to", contactEmail);
 
@@ -217,7 +224,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingHorizontal: 20,
     flexDirection: "column",
-    marginTop:30,
+    marginTop: 30,
   },
   box: {
     backgroundColor: "#004d40",
@@ -263,7 +270,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 3,
     width: 150,
-    marginBottom:30,
+    marginBottom: 30,
   },
   buttonText: {
     fontSize: 18,
